@@ -137,6 +137,11 @@ def predict(payload: ReviewIn) -> SentimentOut:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Texte trop long (> {MAX_TEXT_LENGTH} caractères).",
         )
+    return inference.predict_sentiment(
+        pipeline=state["pipeline"],
+        text=payload.texte,
+        model_name=MODEL_NAME
+    )
 
     # TODO Tâche 3 — Appeler inference.predict_sentiment() et logger la requête.
     # Pour l'instant, on signale que ce n'est pas implémenté.

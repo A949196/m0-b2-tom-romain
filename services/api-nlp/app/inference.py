@@ -43,10 +43,12 @@ def map_stars_to_sentiment(star_label: str) -> Sentiment:
         ValueError: si `star_label` n'est pas dans le format attendu.
     """
     # TODO Tâche 3 — implémenter le mapping de ton choix et documenter
-    # le raisonnement métier dans le README perso async.
-    if star_label <= 2:
+    # le raisonnement métier dans le README perso async.$
+    nb = int(star_label.split()[0])
+
+    if nb <= 2:
         return "négatif"
-    if star_label == 3:
+    if nb == 3:
         return "neutre"
     return "positif"
 
@@ -74,14 +76,15 @@ def predict_sentiment(pipeline: Any, text: str, model_name: str) -> SentimentOut
     #    classe métier.
     # 6. Renvoyer un `SentimentOut(...)`.
     t0 = time.perf_counter()
-    result = pipeline(text, top_k=None)
+    raw = pipeline(text, top_k=None)
+    print(f"DEBUG raw type: {type(raw)}, value: {raw}", flush=True)
     latence = (time.perf_counter() - t0) * 1000
-    scores_5_stars = result[0]
-    argmax = max(scores_5_stars, key=lambda x: x['score'])['label']
+    scores_5_stars = {item["label"]: item["score"] for item in raw}
+    argmax = max(raw, key=lambda x: x['score'])['label']
     sentiment = map_stars_to_sentiment(argmax)
     return SentimentOut(
         sentiment=sentiment, 
         scores_5_stars=scores_5_stars,
         model_name=model_name,
-        latence_ms=latence
+        latence_ms=latence,
     )

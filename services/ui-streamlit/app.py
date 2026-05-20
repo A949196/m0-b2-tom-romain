@@ -62,8 +62,12 @@ if st.button("Analyser", type="primary", disabled=not texte.strip()):
             )
             response.raise_for_status()
             data = response.json()
+    except httpx.TimeoutException:
+        st.error("⏱️ API trop lente (>10s). Réessaie ou vérifie le service.")
+    except httpx.HTTPStatusError as exc:
+        st.error(f"HTTP {exc.response.status_code} : {exc.response.text}")
     except httpx.HTTPError as exc:
-        st.error(f"Erreur API : {exc}")
+        st.error(f"Erreur réseau : {exc}")
     else:
         sentiment = data["sentiment"]
         display = {"négatif": st.error, "neutre": st.warning, "positif": st.success}

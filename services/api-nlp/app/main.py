@@ -55,6 +55,14 @@ TARGET_CLASSES: list[str] = ["négatif", "neutre", "positif"]
 # état partagé entre routes (rempli au lifespan)
 state: dict[str, Any] = {"pipeline": None}
 
+logger.add(
+    "logs/api.log",
+    rotation="5 MB",       
+    retention="7 days",   
+    compression="zip",      
+    level="INFO",        
+)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -137,18 +145,17 @@ def predict(payload: ReviewIn) -> SentimentOut:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Texte trop long (> {MAX_TEXT_LENGTH} caractères).",
         )
-    return inference.predict_sentiment(
+    
+    result = inference.predict_sentiment(
         pipeline=state["pipeline"],
         text=payload.texte,
         model_name=MODEL_NAME
     )
-
-    # TODO Tâche 3 — Appeler inference.predict_sentiment() et logger la requête.
-    # Pour l'instant, on signale que ce n'est pas implémenté.
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail=(
-            "Endpoint /predict pas encore implémenté. Voir Tâche 3 du brief "
-            "et `app/inference.py`."
-        ),
+    
+    logger.info(
+        "predict | texte={texte!r} | sentiment={sentiment} | latence={latence:.2f}ms",
+        texte=payload.texte[:80],
+        sentiment=result.sentiment,
+        latence=result.latence_ms,
     )
+    return result

@@ -77,7 +77,7 @@ def predict_sentiment(pipeline: Any, text: str, model_name: str) -> SentimentOut
     # 6. Renvoyer un `SentimentOut(...)`.
     t0 = time.perf_counter()
     raw = pipeline(text, top_k=None)
-    print(f"DEBUG raw type: {type(raw)}, value: {raw}", flush=True)
+    # print(f"DEBUG raw type: {type(raw)}, value: {raw}", flush=True)
     latence = (time.perf_counter() - t0) * 1000
     scores_5_stars = {item["label"]: item["score"] for item in raw}
     argmax = max(raw, key=lambda x: x['score'])['label']

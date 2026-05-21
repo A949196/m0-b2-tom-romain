@@ -19,6 +19,8 @@ import os
 
 import streamlit as st
 
+import httpx
+
 
 API_URL: str = os.getenv("API_URL", "http://api-nlp:8000")
 
@@ -52,11 +54,31 @@ if st.button("Analyser", type="primary", disabled=not texte.strip()):
     # - Affiche le sentiment dans un encadré coloré (st.success / st.warning /
     #   st.error selon la classe).
     # - Affiche les scores 5 étoiles bruts via st.bar_chart().
-    st.info("📡 Appel API à implémenter — Tâche 4 du brief M0-B2.")
-    st.code(
-        f'httpx.post("{API_URL}/predict", json={{"texte": "..."}}, timeout=10)',
-        language="python",
-    )
+    t = 10
+    try:
+        with st.spinner("Inférence en cours…"):
+            response = httpx.post(f"{API_URL}/predict", json={"texte": texte}, timeout=t)
+            response.raise_for_status()
+            data = response.json()
+    except httpx.network.ConnectError:
+        st.error("Erreur de connexion : impossible de joindre le service NLP.")
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code >= 500:
+            st.error("Erreur serveur : le service NLP est momentanément indisponible.")
+        else:
+            st.error(f"Erreur HTTP {exc.response.status_code} : {exc.response.text}")
+
+    else:
+        sentiment = data["sentiment"]
+        display = {"négatif": st.error, "neutre": st.warning, "positif": st.success}
+        display[sentiment](f"Sentiment détecté : **{sentiment}**")
+        st.bar_chart(data["scores_5_stars"])
+
+    # st.info("📡 Appel API à implémenter — Tâche 4 du brief M0-B2.")
+    # st.code(
+    #     f'httpx.post("{API_URL}/predict", json={{"texte": "..."}}, timeout=10)',
+    #     language="python",
+    # )
 
 with st.sidebar:
     st.markdown(f"**API URL** : `{API_URL}`")

@@ -69,7 +69,7 @@ def predict_sentiment(pipeline: Any, text: str, model_name: str) -> SentimentOut
     # 2. Appeler `pipeline(text, top_k=None)` pour récupérer toutes les
     #    probabilités (5 entrées, une par étoile).
     result = pipeline(text, top_k=None)
-    print(f"DEBUG result 2 type: {type(result)}, value: {result}", flush=True)
+    #print(f"DEBUG result 2 type: {type(result)}, value: {result}", flush=True)
     # => 
     latence = (time.perf_counter() - t0) * 1000
     # 3. Construire `scores_5_stars: dict[str, float]` à partir du résultat.

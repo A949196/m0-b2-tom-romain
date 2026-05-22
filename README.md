@@ -98,7 +98,8 @@ Chaque requête `/predict` produit une ligne dans `logs/api.log` :
 │   │   │   ├── schemas.py         ← Pydantic ReviewIn / SentimentOut
 │   │   │   └── inference.py       ← mapping 5★ → 3 classes
 │   │   └── tests/
-│   │       └── test_health.py     ← 1 test pytest qui passe
+│   │       ├── test_health.py     ← sanité /health
+│   │       └── test_predict.py    ← tests /predict (valide, 422, CSV)
 │   └── ui-streamlit/              ← UI utilisateur
 │       ├── Dockerfile
 │       ├── requirements.txt
@@ -126,12 +127,24 @@ docker compose ps
 
 ## Tests
 
-TO BE COMPLETED
+La suite pytest couvre 3 cas pour `/predict` dans `tests/test_predict.py` :
+
+| Test | Description | Résultat attendu |
+|---|---|---|
+| `test_predict_valid_returns_200_and_valid_structure` | Review valide | 200 + `SentimentOut` conforme (sentiment, scores 5★, latence) |
+| `test_predict_invalid_input_returns_422` | Texte vide, texte blanc, > 2000 chars, payload sans champ | 422 pour chaque cas |
+| `test_predict_csv_reviews_returns_200_and_valid_structure` | 3 reviews chargées depuis `data/sample_reviews.csv` | 200 + `SentimentOut` conforme pour chacune |
+
+Lance les tests **dans le conteneur API** :
 
 ```bash
 docker compose exec api-nlp pytest -v
+# 9 passed in X.XXs
 ```
 
+> **Note** : le `TestClient` utilise `scope="session"` — le pipeline HF est
+> chargé une seule fois pour toute la suite, ce qui évite de recharger le
+> modèle entre chaque test.
 
 ---
 
@@ -157,6 +170,7 @@ docker compose exec api-nlp pytest -v
 | Service `unhealthy` | `docker compose logs api-nlp` |
 | `logs/api.log` vide | Lance au moins une requête `/predict` via Swagger ou Postman |
 | Trop de lignes dans les logs | Les pings `/health` sont filtrés — normal de ne pas les voir |
+| Tests `/predict` échouent avec `pipeline=None` | Vérifier que `TestClient` est utilisé avec `with` (lifespan requis) |
 
 ### Lire les logs en temps réel
 

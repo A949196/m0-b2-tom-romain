@@ -59,20 +59,30 @@ if st.button("Analyser", type="primary", disabled=not texte.strip()):
         with st.spinner("Inférence en cours…"):
             response = httpx.post(f"{API_URL}/predict", json={"texte": texte}, timeout=t)
             response.raise_for_status()
+            print(f"Debug : response : {response}")
             data = response.json()
+            print(f"Debug : data : {data}")
     except httpx.network.ConnectError:
         st.error("Erreur de connexion : impossible de joindre le service NLP.")
+    except httpx.timeoutException:
+        st.error(f"API trop lente, réessaie : le service NLP n'a pas répondu en {t} secondes.")
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code >= 500:
-            st.error("Erreur serveur : le service NLP est momentanément indisponible.")
+            st.error(f"Erreur serveur : le service NLP est momentanément indisponible : {exc.response.status_code} : {exc.response.text}")
+        elif exc.response.status_code >= 400 and exc.response.status_code < 500:
+            st.error(f"Requête invalide : {exc.response.status_code} : {exc.response.text}")
         else:
             st.error(f"Erreur HTTP {exc.response.status_code} : {exc.response.text}")
+    except httpx.HTTPError as exc:
+        st.error(f"Erreur HTTP : {exc}")
 
     else:
         sentiment = data["sentiment"]
         display = {"négatif": st.error, "neutre": st.warning, "positif": st.success}
         display[sentiment](f"Sentiment détecté : **{sentiment}**")
         st.bar_chart(data["scores_5_stars"])
+        print(f"Debug : Latence : {data['latence_ms']} ms")
+        (f"Latence : {data['latence_ms']} ms")
 
     # st.info("📡 Appel API à implémenter — Tâche 4 du brief M0-B2.")
     # st.code(
@@ -80,6 +90,14 @@ if st.button("Analyser", type="primary", disabled=not texte.strip()):
     #     language="python",
     # )
 
+
+
+with httpx.Client(base_url=API_URL, timeout=2) as client:
+    try:
+        healthy = client.get("/health").json().get("model_loaded")
+        st.sidebar.success("✅ API joignable" if healthy else "⚠️ API en chargement")
+    except httpx.HTTPError:
+        st.sidebar.error("❌ API down")
 with st.sidebar:
     st.markdown(f"**API URL** : `{API_URL}`")
     st.markdown(

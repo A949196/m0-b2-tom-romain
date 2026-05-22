@@ -69,6 +69,7 @@ def test_predict_endpoint_parametres() -> None:
         for review in reviews:
             #print(f"Debug : review : {review}")
             response = client.post("/predict", json={"texte": review["texte"]})
+            # ajout d'un test pour comparer le sentiment attendu et celui "calculé" par l'API TODO
             assert response.status_code == 200
             body = response.json()
             assert "sentiment" in body

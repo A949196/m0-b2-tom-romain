@@ -24,7 +24,7 @@ services:
       # cache modèle HF (sinon re-download à chaque up) — préserve aussi entre `down` et `up`
       - ./models:/app/models
       - ./logs:/app/logs
-      - ./data:/app/data
+      - ./data:/app/data # ajout pour que les tests puissent accéder au csv de données!
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
       interval: 30s

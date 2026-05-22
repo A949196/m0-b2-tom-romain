@@ -61,6 +61,8 @@ def test_predict_endpoint_parametres() -> None:
             values = line.strip().split(",")
             review_dict = dict(zip(header, values))  # créer un dictionnaire pour chaque ligne
             reviews.append(review_dict)
+            if len(reviews) >= 3:  # on prend les 3 premières reviews (sans la ligne d'en-tête)
+                break
     #reviews = csv_file.read_text(encoding="utf-8").splitlines()[1:8]  # on prend les 3 premières reviews (sans la ligne d'en-tête)
     #print(f"Debug : path reviews : {reviews}")
     with TestClient(app) as client:

@@ -8,6 +8,7 @@ Lancez docker compose exec api-nlp pytest -v
 """
 from __future__ import annotations
 from typing import Generator
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -45,14 +46,27 @@ def test_predict_endpoint_long_text() -> None:
 
 def test_predict_endpoint_parametres() -> None:
     """Teste l'endpoint /predict avec plusieurs textes du CSV."""
-    reviews = [
-        "Personnel charmant, chambre impeccable, on reviendra !",
-        "Hôtel bruyant, chambre sale, très déçu.",
-        "Séjour correct, rien d'exceptionnel mais pas de gros problèmes non plus."
-    ]
+    # reviews = [
+    #     "Personnel charmant, chambre impeccable, on reviendra !",
+    #     "Hôtel bruyant, chambre sale, très déçu.",
+    #     "Séjour correct, rien d'exceptionnel mais pas de gros problèmes non plus."
+    # ]
+    csv_file = Path("data") / "sample_reviews.csv"
+    #print(f"Debug : path csv : {csv_file}")
+    # récupérer le contenu du csv sous forme de dictionnaire (clé = nom de la colonne, valeur = liste des valeurs)
+    reviews = []
+    with csv_file.open(encoding="utf-8") as f:
+        header = f.readline().strip().split(",")  # lire la première ligne pour récupérer les noms de colonnes
+        for line in f:
+            values = line.strip().split(",")
+            review_dict = dict(zip(header, values))  # créer un dictionnaire pour chaque ligne
+            reviews.append(review_dict)
+    #reviews = csv_file.read_text(encoding="utf-8").splitlines()[1:8]  # on prend les 3 premières reviews (sans la ligne d'en-tête)
+    #print(f"Debug : path reviews : {reviews}")
     with TestClient(app) as client:
         for review in reviews:
-            response = client.post("/predict", json={"texte": review})
+            #print(f"Debug : review : {review}")
+            response = client.post("/predict", json={"texte": review["texte"]})
             assert response.status_code == 200
             body = response.json()
             assert "sentiment" in body

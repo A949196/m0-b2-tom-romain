@@ -25,7 +25,15 @@ from app.schemas import HealthOut, InfoOut, ReviewIn, SentimentOut
 # `backtrace` (frames externes des libs). On garde un format standard.
 # Pour debugger un cas complexe, repasse à diagnose=True ponctuellement.
 logger.remove()
-logger.add(sys.stderr, level="INFO", backtrace=False, diagnose=False)
+# 2. Ajouter un fichier de logs avec rotation, retention, compression
+logger.add(
+    "logs/api.log",
+    rotation="5 MB",        # nouveau fichier dès que 10 Mo atteints
+    retention="7 days",     # garde 30 jours d'historique
+    compression="zip",       # compresse les fichiers archivés
+    level="INFO",            # ne logge pas les DEBUG dans ce fichier
+)
+#logger.add(sys.stderr, level="INFO", backtrace=False, diagnose=False)
 
 
 # --- Filtre access log uvicorn : on n'affiche pas les pings healthcheck ---
@@ -145,5 +153,5 @@ def predict(payload: ReviewIn) -> SentimentOut:
         text=payload.texte,
         model_name=MODEL_NAME,
     )
-    logger.info("Requête /predict — texte: '{}' | résultat: {}", payload.texte, result) 
+    logger.info("Requête /predict — texte: '{}' | sentiment: {} | latence: {} ms", payload.texte[0:80], result.sentiment, result.latence_ms)
     return result

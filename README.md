@@ -34,6 +34,33 @@ open  http://localhost:8501              # UI Streamlit
 
 ---
 
+## Justification du seuil de mapping 5★ → 3 classes
+ 
+### Mapping retenu
+ 
+| Étoiles brutes | Classe métier |
+|---|---|
+| 1 étoile | **négatif** |
+| 2 étoiles | **négatif** |
+| 3 étoiles | **neutre** |
+| 4 étoiles | **positif** |
+| 5 étoiles | **positif** |
+
+### Argumentation
+ 
+**Argument 1 — Asymétrie du coût d'erreur.**
+Un faux négatif (une review 1 ou 2 étoiles classée "neutre" ou "positif") a des conséquences directes :
+un client mécontent non détecté peut faire éclater un scandale publique, dégradant l'image de l'établissement.
+Le seuil est donc volontairement sensible côté négatif : regrouper 1 et 2 étoiles.
+
+**Argument 2 — Distribution des étoiles.**
+Sur un corpus de reviews hôtelières réelles, la distribution typique est polarisée : beaucoup de 5 étoiles et 1 étoile, peu de 3 étoiles. Regrouper 1-2 étoiles en "négatif" et 4-5 étoiles en "positif" produit une distribution équilibrée et exploitable des 3 classes.
+ 
+**Alternative écartée : 1★ seul → négatif, 2-3★ → neutre.**
+Trop conservateur, des reviews 2 étoiles assez négatives ("personnel désagréable, chambre sale") passeraient en "neutre" et ne seraient jamais traitées en priorité.
+
+---
+
 ## Endpoints
 
 | Endpoint | Statut | Description |

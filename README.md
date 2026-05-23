@@ -1,5 +1,40 @@
 # M0-B2 — Squelette : sentiment FR Aubergine Hôtels
 
+## Architecture
+ 
+```mermaid
+flowchart TD
+    USER["Équipe qualité Aubergine
+navigateur · port 8501"]
+    USER -->|"HTTP :8501"| UI
+ 
+    subgraph net["Réseau Docker · m0b2-net"]
+        direction TB
+        UI["ui-streamlit
+champ texte · bouton · couleur · gestion erreurs"]
+        UI -->|"POST /predict · timeout 10s"| API
+        API["api-nlp · FastAPI
+GET /health · GET /info · POST /predict · Loguru"]
+        API -->|"transformers.pipeline()"| MODEL
+        MODEL["CamemBERT FR
+distilcamembert-base-sentiment · 5 étoiles"]
+ 
+        LOGS["./logs · api.log"]
+        DATA["./data · CSV reviews"]
+        MODELS["./models · cache HF"]
+ 
+        API --- LOGS
+        API --- DATA
+        MODEL --- MODELS
+    end
+ 
+    MODEL -->|"mapping 5★ → 3 classes"| RESULT
+    RESULT["sentiment métier
+négatif · neutre · positif"]
+```
+
+## How to
+
 Stack `docker compose` à 2 services qui démarre dès le clone (healthcheck inclus).
 
 ```bash

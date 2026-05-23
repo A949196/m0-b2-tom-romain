@@ -69,7 +69,7 @@ open  http://localhost:8501              # UI Streamlit
 
 ---
 
-## Justification du seuil de mapping 5★ → 3 classes
+## Justification du seuil de mapping 5 étoiles → 3 classes
  
 ### Mapping retenu
  
@@ -91,7 +91,7 @@ Le seuil est donc volontairement sensible côté négatif : regrouper 1 et 2 ét
 **Argument 2 — Distribution des étoiles.**
 Sur un corpus de reviews hôtelières réelles, la distribution typique est polarisée : beaucoup de 5 étoiles et 1 étoile, peu de 3 étoiles. Regrouper 1-2 étoiles en "négatif" et 4-5 étoiles en "positif" produit une distribution équilibrée et exploitable des 3 classes.
  
-**Alternative écartée : 1★ seul → négatif, 2-3★ → neutre.**
+**Alternative écartée : 1 étoile seul → négatif, 2-3 étoiles → neutre.**
 Trop conservateur, des reviews 2 étoiles assez négatives ("personnel désagréable, chambre sale") passeraient en "neutre" et ne seraient jamais traitées en priorité.
 
 ---

@@ -96,6 +96,16 @@ Trop conservateur, des reviews 2 étoiles assez négatives ("personnel désagré
 
 ---
 
+## Analyse des reviews mal classées
+ 
+| # | Review (extrait log) | Classe prédite | Classe attendue | Type d'erreur | Hypothèse |
+|---|---|---|---|---|---|
+| 1 | *"Ahaha c'est agréable quand le personnel d'accueil rentre dans votre chambre sans…"* | `positif` ❌ | `négatif` | Ironie / sarcasme | Le modèle accroche sur `"agréable"` sans commprendre le sarcasme. |
+| 2 | *"C'est horrible de se dire que le voyage est déjà fini !"* | `négatif` ❌ | `positif` | Ambivalence émotionnelle | La phrase exprime une nostalgie positive. Le modèle accroche sur `"horrible"` au premier degré, sans comprendre que la source de la tristesse est la fin d'une expérience positive. |
+| 3 | *"L'hôtel n'est plus ce qu'il était. Avant le personnel était attentionné mais cet…"* | `neutre` ❌ | `négatif` | Comparatif temporel | La structure `"avant X, maintenant pas X"` est un signal de déception. Le modèle capte des termes positifs (`"attentionné"`) et négatifs (`"n'est plus"`) et produit un score équilibré → `neutre`, sans comprendre la comparaison. |
+
+---
+
 ## Endpoints
 
 | Endpoint | Statut | Description |

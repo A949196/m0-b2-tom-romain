@@ -1,4 +1,60 @@
-# M0-B2 — Squelette : sentiment FR Aubergine Hôtels
+# M0-B2 — Sentiment Analysis FR Aubergine Hôtels
+
+## Architecture
+
+````mermaid
+---
+config:
+  layout: elk
+---
+graph TD
+    QualityTeam["👤 Équipe qualité Aubergine"]
+    Browser["🌐 Navigateur<br/>Port 8501"]
+
+    subgraph DockerNetwork["Réseau Docker interne"]
+        StreamlitUI["Streamlit UI<br/>Python<br/>─ Champ texte review<br/>─ Bouton Analyser"]
+        HttpxCall["httpx POST /predict<br/>Timeout 10s<br/>URL: http://api-nlp:8000"]
+        FastAPI["FastAPI api-nlp<br/>Python<br/>─ /health /info /predict<br/>─ Pydantic validation<br/>─ Loguru → ./logs/api.log"]
+        TransformersCall["transformers.pipeline"]
+        CamemBERT["CamemBERT FR<br/>Sortie native: 5 étoiles<br/>Cache HF → ./models"]
+        Mapping["Mapping 5★ → 3 classes<br/>Arbitrage métier"]
+
+        subgraph Testing["Tests et données"]
+            CSVReviews["reviews.csv<br/>Jeu de test"]
+            Pytest["pytest<br/>Tests automatiques API"]
+        end
+    end
+
+    SentimentResult["Sentiment FR<br/>pour le métier"]
+
+    QualityTeam -->|Navigateur Port 8501| Browser
+    Browser --> StreamlitUI
+    StreamlitUI -->|httpx POST /predict<br/>Timeout 10s| HttpxCall
+    HttpxCall --> FastAPI
+    FastAPI -->|Chargement modèle| TransformersCall
+    TransformersCall --> CamemBERT
+    CamemBERT -->|5 étoiles| Mapping
+    Mapping --> SentimentResult
+    Pytest -->|Utilise| CSVReviews
+    Pytest -->|Valide| FastAPI
+
+    classDef team fill:#f5f3ff,stroke:#a78bfa
+    classDef ui fill:#f0f9ff,stroke:#38bdf8
+    classDef docker fill:#ecfeff,stroke:#22d3ee
+    classDef api fill:#fff7ed,stroke:#fb923c
+    classDef ml fill:#f0fdf4,stroke:#4ade80
+    classDef process fill:#fdf4ff,stroke:#e879f9
+    classDef result fill:#fefce8,stroke:#facc15
+    classDef test fill:#fff1f2,stroke:#fb7185
+
+    class QualityTeam team
+    class Browser ui
+    class StreamlitUI,HttpxCall,FastAPI,TransformersCall,CamemBERT,Mapping docker
+    class Pytest,CSVReviews test
+    class SentimentResult result
+````
+
+## Mise en service
 
 Stack `docker compose` à 2 services qui démarre dès le clone (healthcheck
 inclus).
@@ -44,10 +100,7 @@ open  http://localhost:8501              # UI Streamlit
 |---|---|---|
 | `GET /health` | ✅ fonctionnel | rien |
 | `GET /info` | ✅ fonctionnel | rien |
-| `POST /predict` | ❌ 501 Not Implemented | implémenter (avec mapping 5→3) |
-
-L'UI Streamlit est lancée mais affiche **« API non branchée »** tant que tu
-n'as pas branché l'appel HTTP dans `services/ui-streamlit/app.py`.
+| `POST /predict` | ✅ fonctionnel | rien |
 
 ---
 
@@ -64,17 +117,20 @@ n'as pas branché l'appel HTTP dans `services/ui-streamlit/app.py`.
 │   │   ├── app/
 │   │   │   ├── main.py            ← routes (lifespan + /health + /info + /predict)
 │   │   │   ├── schemas.py         ← Pydantic ReviewIn / SentimentOut
-│   │   │   └── inference.py       ← TON CODE + mapping 5→3
+│   │   │   └── inference.py       ← predict sentiment + mapping 5→3
 │   │   └── tests/
 │   │       └── test_health.py     ← 1 test pytest qui passe
+│   │       └── test_predict.py     ← (1) cas valide → 200 + structure réponse OK ; (2) texte vide ou > 2000 caractères → 422 ; (3) test paramétré sur 3 reviews du CSV
 │   └── ui-streamlit/              ← UI utilisateur
 │       ├── Dockerfile
 │       ├── requirements.txt
-│       └── app.py                 ← UI à compléter
+│       └── app.py                 ← Bouton Analyser → appel POST /predict
 ├── data/
 │   └── sample_reviews.csv         ← 30 reviews FR fictives (Aubergine Hôtels)
 └── postman/
-    └── M0-B2_collection.json      ← à compléter
+│   └── M0-B2_collection.json      ← à compléter
+└── data/
+    └── api.log                    ← Logger chaque requête /predict : texte tronqué à 80 caractères (RGPD-friendly), sentiment prédit, latence ms
 ```
 
 ---

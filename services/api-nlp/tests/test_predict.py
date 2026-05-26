@@ -66,7 +66,7 @@ def test_predict_endpoint_parametres() -> None:
             values = line.strip().split(",")
             review_dict = dict(zip(header, values))  # créer un dictionnaire pour chaque ligne
             reviews.append(review_dict)
-            # A voir... les virgule dans le csv mettent le bazar dans le découpage en colonnes, du coup je me retrouve avec des reviews tronquées
+            # TODO : les virgule dans le csv mettent le bazar dans le découpage en colonnes, du coup je me retrouve avec des reviews tronquées
             # (ex: "Personnel charmant, chambre impeccable, on reviendra !" devient "Personnel charmant" et le reste est perdu). 
             # Je vais devoir revoir la structure du csv pour éviter ce problème de découpage. 
             # Peut-être utiliser df = pd.read_csv(csv_file) pour lire le csv et récupérer les reviews sous forme de liste de dictionnaires, ce qui gère mieux les virgules dans les champs.

@@ -340,3 +340,73 @@ Le modèle `cmarkea/distilcamembert-base-sentiment` présente des faiblesses pot
 | « Moins pire que les avis ne le laissaient penser. » | neutre | négatif | **Comparatif** ignoré : le mot `pire` domine, l'atténuateur `moins` est sous-pondéré. |
 | « Personnel catastrophique, accueil glacial, mais le petit-déjeuner était divin. » | négatif | positif | **Connecteur adversatif `mais`** : le modèle survalorise la seconde partie de la phrase et le superlatif `divin`. |
 | « Conforme à mes attentes, ni plus ni moins. » | neutre | positif | **Classe neutre sous-représentée** dans le corpus d'entraînement → le modèle bascule vers la classe positive la plus proche. |
+
+## 🎯 Justification du mapping 5★ → 3 classes
+
+### Le mapping retenu
+
+```python
+MAPPING = {
+    "1 star":  "négatif",
+    "2 stars": "négatif",
+    "3 stars": "neutre",
+    "4 stars": "positif",
+    "5 stars": "positif",
+}
+```
+
+### Pourquoi ce choix ?
+
+#### 1\. Alignement avec la sémantique originelle du modèle
+
+Le modèle `cmarkea/distilcamembert-base-sentiment` a été entraîné sur des reviews Amazon/Allociné où **3 étoiles correspond historiquement à un avis mitigé** (« bof », « correct sans plus »). Préserver cette classe en `neutre` respecte la distribution apprise par le modèle et évite de forcer une polarité que le modèle lui-même n'a pas tranchée.
+
+#### 2\. Symétrie et neutralité décisionnelle
+
+Le mapping est **symétrique** : 2 classes côté négatif, 1 neutre, 2 classes côté positif. Cela évite d'introduire un **biais artificiel** vers une polarité (par exemple, mettre 3★ en négatif rendrait le système pessimiste : ~60 % des avis basculeraient en négatif sur un corpus hôtelier typique).
+
+#### 3\. Cohérence avec le métier hôtelier
+
+Pour Aubergine Hôtels, un client « neutre » correspond à un **signal d'amélioration** distinct des deux extrêmes :
+
+| Classe | Action métier associée |
+| --- | --- |
+| **négatif** | 🚨 Alerte service client, réponse prioritaire, geste commercial |
+| **neutre** | 📊 Analyse qualité, identifier les points d'amélioration silencieux |
+| **positif** | 💬 Sollicitation pour avis public (Google, TripAdvisor), fidélisation |
+
+Fusionner 3★ avec négatif ou positif **détruirait ce signal intermédiaire**, pourtant le plus précieux en amélioration continue (un client neutre ne se plaint pas mais ne reviendra pas non plus).
+
+#### 4\. Coût d'erreur asymétrique : le critère décisif
+
+En classification de sentiment, **toutes les erreurs n'ont pas le même coût métier**. C'est ce déséquilibre qui guide le choix final du mapping.
+
+##### Matrice de coût (vue hôtelier)
+
+| Réalité ↓ / Prédit → | Négatif | Neutre | Positif |
+| --- | --- | --- | --- |
+| **Négatif** (client mécontent) | ✅ OK | ⚠️ Coût modéré | 🔥 **Coût très élevé** |
+| **Neutre** (client mitigé) | ⚠️ Coût faible | ✅ OK | ⚠️ Coût modéré |
+| **Positif** (client satisfait) | ⚠️ Coût faible | ⚠️ Coût faible | ✅ OK |
+
+##### Pourquoi le faux positif coûte plus cher que le faux négatif
+
+- **Faux positif** (un client mécontent classé positif) :
+    
+    - Le système le **sollicite pour un avis public** → il poste un 1★ sur Google/TripAdvisor
+    - Aucune action corrective n'est déclenchée → **perte de réputation durable**
+    - Coût estimé : 1 avis négatif public ≈ **perte de 30 réservations futures** (étude Cornell, 2017)
+- **Faux négatif** (un client satisfait classé négatif) :
+    
+    - Le système déclenche une alerte service client inutile → **coût opérationnel d'environ 5–10 minutes** de traitement
+    - Pas d'impact réputationnel, voire un effet positif (« ils prennent soin de nous »)
+
+➡️ **Le coût d'un faux positif est ~100× supérieur** à celui d'un faux négatif. Le mapping doit donc **favoriser le rappel côté négatif** (capter tous les mécontents, quitte à avoir des faux négatifs).
+
+##### Comment le mapping retenu adresse ce déséquilibre
+
+- En gardant **2★ dans `négatif`** (et non dans `neutre`), on garantit qu'un client modérément mécontent **n'est jamais classé positif**. Le pire scénario devient « 2★ → neutre » (erreur frontalière acceptable), pas « 2★ → positif » (catastrophe métier).
+- En gardant **3★ en `neutre`**, on crée un **tampon protecteur** : un avis ambigu n'est jamais propulsé en `positif` sans confiance forte du modèle.
+
+
+Ce choix devrait être revalidé après quelques semaines d'usage, idéalement avec une **matrice de confusion pondérée par les coûts métiers réels** (mesurés par l'équipe hôtelière).

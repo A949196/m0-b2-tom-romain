@@ -7,6 +7,7 @@ Test de /predict
 Lancez docker compose exec api-nlp pytest -v
 """
 from __future__ import annotations
+import csv
 from typing import Generator
 from pathlib import Path
 
@@ -58,27 +59,20 @@ def test_predict_endpoint_parametres() -> None:
     # ]
     csv_file = Path("data") / "sample_reviews.csv"
     #print(f"Debug : path csv : {csv_file}")
-    # récupérer le contenu du csv sous forme de dictionnaire (clé = nom de la colonne, valeur = liste des valeurs)
-    reviews = []
-    with csv_file.open(encoding="utf-8") as f:
-        header = f.readline().strip().split(",")  # lire la première ligne pour récupérer les noms de colonnes
-        for line in f:
-            values = line.strip().split(",")
-            review_dict = dict(zip(header, values))  # créer un dictionnaire pour chaque ligne
-            reviews.append(review_dict)
-            # TODO : les virgule dans le csv mettent le bazar dans le découpage en colonnes, du coup je me retrouve avec des reviews tronquées
-            # (ex: "Personnel charmant, chambre impeccable, on reviendra !" devient "Personnel charmant" et le reste est perdu). 
-            # Je vais devoir revoir la structure du csv pour éviter ce problème de découpage. 
-            # Peut-être utiliser df = pd.read_csv(csv_file) pour lire le csv et récupérer les reviews sous forme de liste de dictionnaires, ce qui gère mieux les virgules dans les champs.
-            # mais Pandas n'est pas dans les requirements donc pas dans l'environnement de l'API.
-            #if len(reviews) >= 3:  # on prend les 3 premières reviews (sans la ligne d'en-tête)
-                #break
+    # récupérer le contenu du CSV avec le module csv pour respecter les guillemets
+    with csv_file.open(encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        reviews = [row for row in reader]
+        logger.info(f"Test paramétré, nombre de reviews chargées : {len(reviews)}, exemples : {reviews[:3]}")
     #reviews = csv_file.read_text(encoding="utf-8").splitlines()[1:8]  # on prend les 3 premières reviews (sans la ligne d'en-tête)
     #print(f"Debug : path reviews : {reviews}")
     with TestClient(app) as client:
         for review in reviews:
             #print(f"Debug : review : {review}")
             response = client.post("/predict", json={"texte": review["texte"]})
+            if review["sentiment_attendu"] != response.json().get("sentiment"):
+                logger.warning(f"Sentiment prédictif inattendu : {response.json().get('sentiment')}, on attendait : {review['sentiment_attendu']} pour la review : {review['texte']}")
+                #print(f"Debug : sentiment inattendu dans le CSV : {review['sentiment_attendu']}, on attendait : {response.json().get('sentiment')} pour la review : {review['texte']}")
             assert response.status_code == 200
             body = response.json()
             assert "sentiment" in body

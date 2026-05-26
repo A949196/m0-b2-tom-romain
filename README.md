@@ -326,3 +326,17 @@ Si le service reste `unhealthy` au bout de 2 min, regarde les logs :
 - **Ressources** : Le modèle nécessite ~270 Mo de RAM. Vérifier que Docker a assez de mémoire allouée.
 - **Réseau** : Toujours utiliser le nom du service Docker (`api-nlp`) dans les appels internes, jamais `localhost`.
 - **Volumes** : Les modèles téléchargés et logs sont conservés entre les redémarrages (`docker compose down` ne les supprime pas).
+
+---
+
+## 🔍 Analyses de reviews mal classées
+
+Le modèle `cmarkea/distilcamembert-base-sentiment` présente des faiblesses potentielles sur certaines structures linguistiques. Exemples observés sur des reviews adversariales :
+
+| Review | Attendu | Prédit | Explication |
+|---|---|---|---|
+| « Quel service client exceptionnel ! Ils ont mis 3 jours à répondre à notre demande d'oreiller supplémentaire. Bravo ! » | négatif | positif | **Ironie** non détectée : le modèle s'accroche aux mots positifs (`exceptionnel`, `Bravo`) sans saisir le contexte sarcastique. |
+| « On ne peut pas dire que le petit-déjeuner manquait de quoi que ce soit. » | positif | négatif | **Double négation** mal résolue : le modèle compte les marqueurs négatifs (`pas`, `manquait`) sans appliquer ¬¬P = P. |
+| « Moins pire que les avis ne le laissaient penser. » | neutre | négatif | **Comparatif** ignoré : le mot `pire` domine, l'atténuateur `moins` est sous-pondéré. |
+| « Personnel catastrophique, accueil glacial, mais le petit-déjeuner était divin. » | négatif | positif | **Connecteur adversatif `mais`** : le modèle survalorise la seconde partie de la phrase et le superlatif `divin`. |
+| « Conforme à mes attentes, ni plus ni moins. » | neutre | positif | **Classe neutre sous-représentée** dans le corpus d'entraînement → le modèle bascule vers la classe positive la plus proche. |

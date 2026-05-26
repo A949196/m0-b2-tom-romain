@@ -108,6 +108,75 @@
         "description": "Validation Pydantic : texte vide doit renvoyer 422."
       },
       "response": []
+    },
+    {
+      "name": "POST /predict — texte trop long (422 attendu)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"texte\": \"Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! Super séjour, personnel adorable ! \"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/predict",
+          "host": ["{{base_url}}"],
+          "path": ["predict"]
+        },
+        "description": "Validation Pydantic : texte trop long doit renvoyer 422."
+      },
+      "response": []
+    },
+    {
+      "name": "POST /predict — caractères spéciaux",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"texte\": \"Accueil glacial à la réception, chambre froide et bruyante, nous ne reviendrons pas dépenser nos $$$ | franchement faut pas regarder le % de marge!.\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/predict",
+          "host": ["{{base_url}}"],
+          "path": ["predict"]
+        },
+        "description": "Cas valide attendu : sentiment = 'négatif'."
+      },
+      "response": []
+    },
+    {
+      "name": "POST /predict — review piégeuse - ironie",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"texte\": \"Quel service client exceptionnel ! Ils ont mis 3 jours à répondre à notre demande d’oreiller supplémentaire. Bravo !\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/predict",
+          "host": ["{{base_url}}"],
+          "path": ["predict"]
+        },
+        "description": "Cas valide attendu : sentiment = 'négatif'."
+      },
+      "response": []
     }
   ]
 }

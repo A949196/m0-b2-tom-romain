@@ -151,7 +151,7 @@
           "host": ["{{base_url}}"],
           "path": ["predict"]
         },
-        "description": "Cas valide attendu : sentiment = 'négatif'."
+        "description": "Cas valide avec caractères spéciaux attendu : sentiment = 'négatif'."
       },
       "response": []
     },
@@ -174,7 +174,7 @@
           "host": ["{{base_url}}"],
           "path": ["predict"]
         },
-        "description": "Cas valide attendu : sentiment = 'négatif'."
+        "description": "Cas ironique attendu : sentiment = 'négatif'."
       },
       "response": []
     }

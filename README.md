@@ -135,7 +135,7 @@ curl --noproxy localhost -X POST http://localhost:8000/predict -H "Content-Type:
 
 L'interface Streamlit permet une analyse interactive des avis :
 
-TODO image
+<img width="1847" height="902" alt="UI Aubergine" src="https://github.com/user-attachments/assets/9c382957-ed4a-421e-9e59-31e13bb3a4c2" />
 
 **Fonctionnalités** :
 

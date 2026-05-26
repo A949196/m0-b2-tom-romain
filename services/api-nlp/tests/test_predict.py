@@ -12,6 +12,8 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from loguru import logger
+
 from app.main import app
 import pytest
 
@@ -61,15 +63,35 @@ def test_predict_endpoint_parametres() -> None:
             values = line.strip().split(",")
             review_dict = dict(zip(header, values))  # créer un dictionnaire pour chaque ligne
             reviews.append(review_dict)
-            if len(reviews) >= 3:  # on prend les 3 premières reviews (sans la ligne d'en-tête)
-                break
+            #if len(reviews) >= 3:  # on prend les 3 premières reviews (sans la ligne d'en-tête)
+                #break
     #reviews = csv_file.read_text(encoding="utf-8").splitlines()[1:8]  # on prend les 3 premières reviews (sans la ligne d'en-tête)
     #print(f"Debug : path reviews : {reviews}")
     with TestClient(app) as client:
         for review in reviews:
             #print(f"Debug : review : {review}")
             response = client.post("/predict", json={"texte": review["texte"]})
-            # ajout d'un test pour comparer le sentiment attendu et celui "calculé" par l'API TODO
+            assert response.status_code == 200
+            body = response.json()
+            assert "sentiment" in body
+            assert body["sentiment"] in {"négatif", "neutre", "positif"}
+
+def test_predict_endpoint_parametres_mal_classees() -> None:
+    csv_file = Path("data") / "bad_sample_reviews.csv"
+    reviews = []
+    with csv_file.open(encoding="utf-8") as f:
+        header = f.readline().strip().split(",")  # lire la première ligne pour récupérer les noms de colonnes
+        for line in f:
+            values = line.strip().split(",")
+            review_dict = dict(zip(header, values))  # créer un dictionnaire pour chaque ligne
+            reviews.append(review_dict)
+    with TestClient(app) as client:
+        for review in reviews:
+            response = client.post("/predict", json={"texte": review["texte"]})
+            #logger.info(f"Test review : {review['texte']}, sentiment attendu : {review['sentiment_attendu']}, sentiment prédit : {response.json().get('sentiment')}")   
+            if review["sentiment_attendu"] != response.json().get("sentiment"):
+                logger.warning(f"Sentiment prédictif inattendu : {response.json().get('sentiment')}, on attendait : {review['sentiment_attendu']} pour la review : {review['texte']}")
+                #print(f"Debug : sentiment inattendu dans le CSV : {review['sentiment_attendu']}, on attendait : {response.json().get('sentiment')} pour la review : {review['texte']}")
             assert response.status_code == 200
             body = response.json()
             assert "sentiment" in body

@@ -1,0 +1,14 @@
+id,hotel,texte,note_client,sentiment_attendu
+1,Aubergine Ironie,"Quel service client exceptionnel ! Ils ont mis 3 jours à répondre à notre demande d’oreiller supplémentaire. Bravo !",1,négatif
+2,Aubergine Négation,"Ce n’est pas le pire hôtel que j’aie vu mais ce n’est pas non plus le meilleur.",3,neutre
+3,Aubergine Ambiguïté,"La chambre était spacieuse mais le lit était aussi dur que du béton. Un vrai dilemme pour dormir !",2,négatif
+4,Aubergine Positif,"J’ai adoré mon séjour même si le petit-déjeuner était un peu décevant. Le personnel était tellement sympathique que ça compense largement !",4,positif
+5,Aubergine Négation,"Ce n’est pas mal du tout la propreté est acceptable et le personnel n’est pas désagréable.",4,positif
+6,Aubergine Ironie,"On a adoré l’ambiance cosy... si on aime l’odeur de moisi et les murs qui s’effritent. Parfait pour un séjour romantique !",1,négatif
+7,Aubergine Ambiguïté,"Le service était rapide mais la qualité de la nourriture était tellement mauvaise que ça gâchait tout. Un vrai paradoxe culinaire !",2,négatif
+8,Aubergine Positif,"Le personnel était tellement serviable que j’ai presque oublié les problèmes de plomberie dans la salle de bain. Un séjour mémorable malgré tout !",4,positif
+9,Aubergine Négation,"On ne peut pas dire que le petit-déjeuner manquait de quoi que ce soit.",4,positif
+10,Aubergine Comparatif,"Moins pire que les avis ne le laissaient penser.",4,neutre
+11,Aubergine Mixte,"Personnel catastrophique accueil glacial mais le petit-déjeuner était divin.",2,négatif
+12,Aubergine Ambivalence,"Conforme à mes attentes ni plus ni moins.",3,neutre
+13,Aubergine Négation,"On ne peut pas dire que le petit-déjeuner manquait de quoi que ce soit.",4,positif

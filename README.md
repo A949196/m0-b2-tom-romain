@@ -46,8 +46,7 @@ flowchart TB
 
 ## Mise en service
 
-Stack `docker compose` à 2 services qui démarre dès le clone (healthcheck
-inclus).
+Stack Docker Compose à 2 services avec healthcheck intégré, pipeline de sentiment analysis et interface utilisateur.
 
 ```bash
 # 1. Configurer l'environnement
@@ -57,7 +56,7 @@ cp .env.example .env
 docker compose up --build
 
 # 3. Vérifier
-curl http://localhost:8000/health        # API NLP
+curl http://localhost:8000/health        # API NLP (doit retourner 200)
 open  http://localhost:8501              # UI Streamlit
 ```
 
@@ -70,31 +69,130 @@ open  http://localhost:8501              # UI Streamlit
 
 ---
 
-## Modèle utilisé
+## 📦 **Stack technique**
 
-**`cmarkea/distilcamembert-base-sentiment`** — DistilCamemBERT FR,
-68 M paramètres, ~270 Mo.
-
-⚠️ Le modèle sort **5 étoiles** (`'1 star'` … `'5 stars'`). Le métier
-(Aubergine Hôtels) veut **3 classes** (`négatif/neutre/positif`).
-
-→ Tu dois implémenter le **mapping 5★ → 3 classes** dans
-`services/api-nlp/app/inference.py`. C'est le geste cœur de ce brief
-(adaptation d'un service au format métier).
+| Service | Technologie | Port | Rôle |
+| --- | --- | --- | --- |
+| **API NLP** | FastAPI + Transformers | `8000` | Service d'inférence avec mapping 5→3 classes |
+| **UI Streamlit** | Streamlit | `8501` | Interface utilisateur pour analyser les avis |
+| **Modèle** | `cmarkea/distilcamembert-base-sentiment` | \- | DistilCamemBERT FR (68M paramètres) |
+| **Logging** | Loguru | \- | Journalisation des requêtes avec rotation automatique |
+| **Tests** | Pytest | \- | Validation de l'API et du mapping |
 
 ---
 
-## Endpoints fournis
+## 🔍 **Modèle utilisé**
 
-| Endpoint | Statut au clone | Ce que tu dois faire |
-|---|---|---|
-| `GET /health` | ✅ fonctionnel | rien |
-| `GET /info` | ✅ fonctionnel | rien |
-| `POST /predict` | ✅ fonctionnel | rien |
+[**`cmarkea/distilcamembert-base-sentiment`**](https://huggingface.co/cmarkea/distilcamembert-base-sentiment) — Modèle DistilCamemBERT spécialisé en sentiment analysis pour le français (68M paramètres, ~270 Mo).
+
+**Adaptation métier** :
+																   
+
+- Le modèle original sort **5 classes** (`'1 star'`, `'2 stars'`, `'3 stars'`, `'4 stars'`, `'5 stars'`)
+- **Mapping implémenté** dans `services/api-nlp/app/inference.py` :
+    - **1-2 étoiles** → `négatif`
+    - **3 étoiles** → `neutre`
+    - **4-5 étoiles** → `positif`
+
+> 💡 **Justification du mapping** : Ce découpage minimise les faux positifs pour les avis très négatifs (1-2 étoiles) tout en conservant une granularité suffisante pour l'analyse métier.
 
 ---
 
-## Structure
+## 🔌 **Endpoints disponibles**
+
+| Endpoint | Méthode | Statut | Description |
+| --- | --- | --- | --- |
+| `/health` | GET | ✅ | Vérification de la santé du service |
+| `/info` | GET | ✅ | Métadonnées sur le modèle chargé |
+| `/predict` | POST | ✅ | Analyse de sentiment avec mapping 5→3 classes |
+
+**Exemple d'appel** :
+
+```bash
+curl --noproxy localhost -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d '{"texte":"Personnel charmant, chambre impeccable…"}'
+```
+
+**Réponse attendue** :
+
+```json
+{
+    "sentiment": "positif",
+    "scores_5_stars": {
+        "5 stars": 0.4574357271194458,
+        "4 stars": 0.43361169099807739,
+        "3 stars": 0.0919409990310669,
+        "2 stars": 0.013017976656556129,
+        "1 star": 0.0039935670793056488
+    },
+    "model_name": "cmarkea/distilcamembert-base-sentiment",
+    "latence_ms": 488.63056400023197
+}
+```
+
+---
+
+## 🖼️ **Interface Utilisateur**
+
+L'interface Streamlit permet une analyse interactive des avis :
+
+TODO image
+
+**Fonctionnalités** :
+
+- Champ de texte pour saisir un avis
+- Bouton "Analyser" déclenchant l'appel à l'API
+- Affichage du sentiment avec couleur :
+    - 🔴 Négatif
+    - 🟠 Neutre
+    - 🟢 Positif
+- Affichage des scores 5 étoiles via un graphique à barres
+- Gestion des erreurs (timeout 10s, API indisponible)
+
+---
+
+## 📊 **Fonctionnalités implémentées**
+
+### 1\. **Mapping 5→3 classes**
+
+- Implémentation robuste dans `services/api-nlp/app/inference.py`
+- Gestion des erreurs pour les labels inattendus
+- Justification du découpage dans le code
+
+### 2\. **Journalisation avancée**
+
+- Fichier `logs/api.log` avec :
+    - Rotation automatique (5 Mo)
+    - Rétention de 7 jours
+    - Compression des logs anciens
+- Champs enregistrés :
+    - Texte tronqué (80 caractères pour respect RGPD)
+    - Sentiment prédit
+    - Latence de traitement
+
+### 3\. **Tests automatisés**
+
+- 4 tests dans `services/api-nlp/tests/test_predict.py` :
+    - Cas valide → 200 + structure réponse OK
+    - Texte vide → 422 (Unprocessable Entity)
+    - Texte > 2000 caractères → 422
+    - Tests paramétrés sur 3 avis du CSV `sample_reviews.csv`
+	- Tests paramétrés sur des avis mal prédit du CSV `bad_sample_reviews.csv`
+
+**Exécution des tests** :
+
+```bash
+docker compose exec api-nlp pytest -v
+```
+
+### 4\. **Intégration CI/CD**
+
+- Healthcheck Docker vérifiant la disponibilité du modèle
+- Vérification du format de réponse de l'API
+- Tests exécutés automatiquement dans le conteneur
+
+---
+
+## 📁 **Structure du projet**
 
 ```
 .
@@ -110,15 +208,16 @@ open  http://localhost:8501              # UI Streamlit
 │   │   │   └── inference.py       ← predict sentiment + mapping 5→3
 │   │   └── tests/
 │   │       └── test_health.py     ← 1 test pytest qui passe
-│   │       └── test_predict.py     ← (1) cas valide → 200 + structure réponse OK ; (2) texte vide ou > 2000 caractères → 422 ; (3) test paramétré sur 3 reviews du CSV
+│   │       └── test_predict.py    ← (1) cas valide → 200 + structure réponse OK ; (2) texte vide ou > 2000 caractères → 422 ; (3) test paramétré sur 3 reviews du CSV
 │   └── ui-streamlit/              ← UI utilisateur
 │       ├── Dockerfile
 │       ├── requirements.txt
 │       └── app.py                 ← Bouton Analyser → appel POST /predict
 ├── data/
-│   └── sample_reviews.csv         ← 30 reviews FR fictives (Aubergine Hôtels)
+│   ├── sample_reviews.csv         ← 30 reviews FR fictives (Aubergine Hôtels)
+│   └── bad_sample_reviews.csv     ← 13 reviews FR fictives potentiellement mal classées (Aubergine Hôtels)
 └── postman/
-│   └── M0-B2_collection.json      ← à compléter
+│   └── M0-B2_collection.json      ← Collection Postman
 └── data/
     └── api.log                    ← Logger chaque requête /predict : texte tronqué à 80 caractères (RGPD-friendly), sentiment prédit, latence ms
 ```
@@ -149,9 +248,6 @@ Lance les tests **dans le conteneur API** :
 docker compose exec api-nlp pytest -v
 ```
 
-Au clone, 1 test passe (`test_health.py`). À toi d'ajouter au moins
-2 tests pour `/predict`.
-
 ---
 
 ## Variables d'environnement (`.env`)
@@ -163,16 +259,70 @@ Au clone, 1 test passe (`test_health.py`). À toi d'ajouter au moins
 
 ---
 
-## Débugging rapide
+## 🛠 **Dépannage**
 
-| Symptôme | À tenter |
-|---|---|
-| `docker compose up` reste bloqué sur `pulling/building` | 1ᵉʳ build = 3-5 min + 1-3 min download modèle, patiente |
-| `/predict` renvoie toujours 501 | Tu n'as pas encore complété `inference.py`, c'est normal |
-| `/predict` renvoie `"1 star"` au lieu de `"négatif"` | Mapping 5→3 pas implémenté |
-| L'UI affiche « API non branchée » | Tu dois compléter `app.py` dans `services/ui-streamlit/` |
-| `Connection refused` depuis l'UI | Vérifie que l'URL est `http://api-nlp:8000` (nom de service docker), pas `localhost` |
-| `ModuleNotFoundError` | Rebuild : `docker compose build --no-cache api-nlp` |
-| Service `unhealthy` | `docker compose logs api-nlp` — le modèle ne se charge probablement pas (réseau, mémoire) |
+| Problème | Solution |
+| --- | --- |
+| `docker compose up` reste bloqué | 1er build = 3-5 min + 1-3 min download modèle |
+| `/predict` retourne 501 | Vérifier que `inference.py` est bien complété |
+| `/predict` retourne des labels 5 étoiles | Mapping 5→3 non implémenté ou erreur dans le code |
+| UI affiche "API non branchée" | Vérifier l'URL dans `app.py` (`http://api-nlp:8000`) |
+| `Connection refused` depuis l'UI | Utiliser le nom du service Docker (`api-nlp`) |
+| Service `unhealthy` | `docker compose logs api-nlp` pour diagnostics |
+| Logs volumineux | Vérifier la rotation dans `inference.py` |
+| Tests échouent | Exécuter `docker compose exec api-nlp pytest -v` |
 
-Logs en temps réel : `docker compose logs -f api-nlp`.
+**Healthcheck** :
+
+Le `docker-compose.yml` inclut un `healthcheck` sur `api-nlp`. Au bout de
+~40 s (le temps que le modèle se charge), le service passe `healthy`.
+Vérification :
+
+```bash
+docker compose ps
+# m0b2-api-nlp        Up X seconds (healthy)
+```
+
+Si le service reste `unhealthy` au bout de 2 min, regarde les logs :
+`docker compose logs api-nlp`.
+
+---
+
+## 📖 **Documentation complémentaire**
+
+- [Documentation du modèle](https://huggingface.co/cmarkea/distilcamembert-base-sentiment)
+- [API FastAPI](https://fastapi.tiangolo.com/)
+- [Streamlit Documentation](https://docs.streamlit.io/)
+- [Transformers Documentation](https://huggingface.co/docs/transformers/index)
+- [Loguru Documentation](https://github.com/Delgan/loguru)
+
+---
+
+## 🤝 **Collaboration**
+
+- **Pair programming** : Les rôles ont été switchés à mi-séance pour valider les deux parties (API et UI)
+- **Commit** : Utilisation recommandée de `Co-authored-by` pour les commits en binôme
+- **Branches** : Travailler sur des branches dédiées pour chaque fonctionnalité
+
+---
+
+## 🎯 **Bonnes pratiques**
+
+1. **RGPD** : Les textes sont tronqués à 80 caractères dans les logs
+2. **Performance** : Le modèle est chargé au démarrage (lifespan) pour éviter les latences
+3. **Robustesse** :
+    - Validation des entrées (Pydantic)
+    - Gestion des erreurs (timeout, format invalide)
+    - Tests couvrant les cas limites
+4. **Maintenabilité** :
+    - Code commenté et justifié
+    - Tests automatisés
+    - Documentation à jour
+
+---
+
+## 📌 **Points d'attention**
+
+- **Ressources** : Le modèle nécessite ~270 Mo de RAM. Vérifier que Docker a assez de mémoire allouée.
+- **Réseau** : Toujours utiliser le nom du service Docker (`api-nlp`) dans les appels internes, jamais `localhost`.
+- **Volumes** : Les modèles téléchargés et logs sont conservés entre les redémarrages (`docker compose down` ne les supprime pas).

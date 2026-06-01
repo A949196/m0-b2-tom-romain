@@ -24,10 +24,11 @@ def client() -> Generator[TestClient, None, None]:
     with TestClient(app) as client:
         yield client
 
-def test_predict_endpoint_valid() -> None:
+def test_predict_endpoint_valid(client) -> None:
     """Teste l'endpoint /predict avec un texte valide."""
-    with TestClient(app) as client:
-        response = client.post("/predict", json={"texte": "Excellente nuit, accueil au top, vue sur le bassin imprenable."})
+    #with TestClient(app) as client:
+        #response = client.post("/predict", json={"texte": "Excellente nuit, accueil au top, vue sur le bassin imprenable."})
+    response = client.post("/predict", json={"texte": "Excellente nuit, accueil au top, vue sur le bassin imprenable."})
     assert response.status_code == 200
     body = response.json()
     assert "sentiment" in body
@@ -35,22 +36,22 @@ def test_predict_endpoint_valid() -> None:
     assert body["sentiment"] in {"négatif", "neutre", "positif"}
     logger.info(f"Test texte valide, status code : {response.status_code}, response : {response.json()}")
 
-def test_predict_endpoint_empty_text() -> None:
+def test_predict_endpoint_empty_text(client) -> None:
     """Teste l'endpoint /predict avec un texte vide."""
-    with TestClient(app) as client:
-        response = client.post("/predict", json={"texte": ""})
+    #with TestClient(app) as client:
+    response = client.post("/predict", json={"texte": ""})
     assert response.status_code == 422
     logger.warning(f"Test texte vide, status code : {response.status_code}, response : {response.json()}")
 
-def test_predict_endpoint_long_text() -> None:
+def test_predict_endpoint_long_text(client) -> None:
     """Teste l'endpoint /predict avec un texte > 2000 caractères."""
     long_text = "a" * 2001
-    with TestClient(app) as client:
-        response = client.post("/predict", json={"texte": long_text})
+    #with TestClient(app) as client:
+    response = client.post("/predict", json={"texte": long_text})
     assert response.status_code == 422 
     logger.warning(f"Test texte long, status code : {response.status_code}, response : {response.json()}")
 
-def test_predict_endpoint_parametres() -> None:
+def test_predict_endpoint_parametres(client) -> None:
     """Teste l'endpoint /predict avec plusieurs textes du CSV."""
     # reviews = [
     #     "Personnel charmant, chambre impeccable, on reviendra !",
@@ -58,27 +59,28 @@ def test_predict_endpoint_parametres() -> None:
     #     "Séjour correct, rien d'exceptionnel mais pas de gros problèmes non plus."
     # ]
     csv_file = Path("data") / "sample_reviews.csv"
+    # TODO : MODEL_PATH = Path(__file__).resolve().parents[1] / "model" / "model.joblib"
     #print(f"Debug : path csv : {csv_file}")
     # récupérer le contenu du CSV avec le module csv pour respecter les guillemets
     with csv_file.open(encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
         reviews = [row for row in reader]
-        logger.info(f"Test paramétré, nombre de reviews chargées : {len(reviews)}, exemples : {reviews[:3]}")
+        #logger.info(f"Test paramétré, nombre de reviews chargées : {len(reviews)}, exemples : {reviews[:3]}")
     #reviews = csv_file.read_text(encoding="utf-8").splitlines()[1:8]  # on prend les 3 premières reviews (sans la ligne d'en-tête)
     #print(f"Debug : path reviews : {reviews}")
-    with TestClient(app) as client:
-        for review in reviews:
-            #print(f"Debug : review : {review}")
-            response = client.post("/predict", json={"texte": review["texte"]})
-            if review["sentiment_attendu"] != response.json().get("sentiment"):
-                logger.warning(f"Sentiment prédictif inattendu : {response.json().get('sentiment')}, on attendait : {review['sentiment_attendu']} pour la review : {review['texte']}")
-                #print(f"Debug : sentiment inattendu dans le CSV : {review['sentiment_attendu']}, on attendait : {response.json().get('sentiment')} pour la review : {review['texte']}")
-            assert response.status_code == 200
-            body = response.json()
-            assert "sentiment" in body
-            assert body["sentiment"] in {"négatif", "neutre", "positif"}
+    #with TestClient(app) as client:
+    for review in reviews:
+        #print(f"Debug : review : {review}")
+        response = client.post("/predict", json={"texte": review["texte"]})
+        if review["sentiment_attendu"] != response.json().get("sentiment"):
+            logger.warning(f"Sentiment prédictif inattendu : {response.json().get('sentiment')}, on attendait : {review['sentiment_attendu']} pour la review : {review['texte']}")
+            #print(f"Debug : sentiment inattendu dans le CSV : {review['sentiment_attendu']}, on attendait : {response.json().get('sentiment')} pour la review : {review['texte']}")
+        assert response.status_code == 200
+        body = response.json()
+        assert "sentiment" in body
+        assert body["sentiment"] in {"négatif", "neutre", "positif"}
 
-def test_predict_endpoint_parametres_mal_classees() -> None:
+def test_predict_endpoint_parametres_mal_classees(client) -> None:
     csv_file = Path("data") / "bad_sample_reviews.csv"
     reviews = []
     with csv_file.open(encoding="utf-8") as f:
@@ -87,14 +89,14 @@ def test_predict_endpoint_parametres_mal_classees() -> None:
             values = line.strip().split(",")
             review_dict = dict(zip(header, values))  # créer un dictionnaire pour chaque ligne
             reviews.append(review_dict)
-    with TestClient(app) as client:
-        for review in reviews:
-            response = client.post("/predict", json={"texte": review["texte"]})
-            #logger.info(f"Test review : {review['texte']}, sentiment attendu : {review['sentiment_attendu']}, sentiment prédit : {response.json().get('sentiment')}")   
-            if review["sentiment_attendu"] != response.json().get("sentiment"):
-                logger.warning(f"Sentiment prédictif inattendu : {response.json().get('sentiment')}, on attendait : {review['sentiment_attendu']} pour la review : {review['texte']}")
-                #print(f"Debug : sentiment inattendu dans le CSV : {review['sentiment_attendu']}, on attendait : {response.json().get('sentiment')} pour la review : {review['texte']}")
-            assert response.status_code == 200
-            body = response.json()
-            assert "sentiment" in body
-            assert body["sentiment"] in {"négatif", "neutre", "positif"}
+    #with TestClient(app) as client:
+    for review in reviews:
+        response = client.post("/predict", json={"texte": review["texte"]})
+        #logger.info(f"Test review : {review['texte']}, sentiment attendu : {review['sentiment_attendu']}, sentiment prédit : {response.json().get('sentiment')}")   
+        if review["sentiment_attendu"] != response.json().get("sentiment"):
+            logger.warning(f"Sentiment prédictif inattendu : {response.json().get('sentiment')}, on attendait : {review['sentiment_attendu']} pour la review : {review['texte']}")
+            #print(f"Debug : sentiment inattendu dans le CSV : {review['sentiment_attendu']}, on attendait : {response.json().get('sentiment')} pour la review : {review['texte']}")
+        assert response.status_code == 200
+        body = response.json()
+        assert "sentiment" in body
+        assert body["sentiment"] in {"négatif", "neutre", "positif"}
